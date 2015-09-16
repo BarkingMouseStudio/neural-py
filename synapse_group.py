@@ -20,30 +20,28 @@ class SynapseGroup:
         tau_a = 10.0
         tau_b = 10.0
 
-        self.W = W = theano.shared(np.zeros((N1.size, N2.size)), name="W")
-        pre_t = theano.shared(np.zeros((N1.size, N2.size)), name="pre_t")
-        post_t = theano.shared(np.zeros((N1.size, N2.size)), name="post_t")
+        self.W = W = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="W")
+        pre_t = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="pre_t")
+        post_t = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="post_t")
 
-        dt = post_t - pre_t
-        dw = a_sym * (1.0 - (dt / tau_a)**2) * T.exp(-T.abs_(dt) / tau_b)
+        dt = T.cast(post_t - pre_t, theano.config.floatX)
+        dw = T.cast(a_sym * (1.0 - (dt / tau_a)**2) * T.exp(-T.abs_(dt) / tau_b), theano.config.floatX)
 
-        now = T.iscalar("now")
-        spikes = T.vector("spikes")
+        now = T.scalar("now")
+        spikes1 = T.vector("spikes", dtype=theano.config.floatX)
+        spikes2 = T.vector("spikes", dtype=theano.config.floatX)
 
-        self.pre_recv_now = theano.function([now, spikes], [pre_t],
-            updates=[(pre_t, T.switch(spikes, now, pre_t.T).T)], name="pre_recv_now")
+        self.pre_recv_now = theano.function([now, spikes1], [pre_t],
+            updates=[(pre_t, T.switch(spikes1, now, pre_t.T).T)], name="pre_recv_now")
 
-        self.post_recv_now = theano.function([now, spikes], [post_t],
-            updates=[(post_t, T.switch(spikes, now, post_t))], name="post_recv_now")
+        self.post_recv_now = theano.function([now, spikes2], [post_t],
+            updates=[(post_t, T.switch(spikes2, now, post_t))], name="post_recv_now")
 
         self.integrate = theano.function([], W,
             updates=[(W, T.clip(W + dw, W_min, W_max))], name="integrate")
 
-        self.apply_spikes = theano.function([spikes],
-            T.sum(W * spikes, axis=1, dtype=theano.config.floatX), name="apply_spikes")
-
-    def connect(self, W_connect):
-        self.W.set_value(W_connect)
+        self.apply_spikes = theano.function([spikes2],
+            T.sum(W.T * spikes2, axis=1, dtype=theano.config.floatX), name="apply_spikes")
 
     def tick(self, now, spikes_1, spikes_2):
         # for incoming neurons that spiked, update their synapses
@@ -61,3 +59,5 @@ class SynapseGroup:
         # schedule those spikes
         t = now + self.delay
         self.scheduler.apply_schedule(t, spikes_out)
+
+        return spikes_out

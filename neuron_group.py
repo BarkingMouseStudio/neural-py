@@ -16,12 +16,12 @@ class NeuronGroup:
         d = 2.0
         tau = 0.5
 
-        self.v = v = theano.shared(np.full(size, c), name="v")
-        self.u = u = theano.shared(np.full(size, c * b), name="u")
-        self.I = I = theano.shared(np.zeros(size), name="I")
+        self.v = v = theano.shared(np.full(size, c).astype(theano.config.floatX), name="v")
+        self.u = u = theano.shared(np.full(size, c * b).astype(theano.config.floatX), name="u")
+        self.I = I = theano.shared(np.zeros(size).astype(theano.config.floatX), name="I")
 
-        dv = 0.04 * (v * v) + (5.0 * v) + 140.0 - u + I
-        du = a * ((b * v) - u)
+        dv = T.cast(0.04 * (v * v) + (5.0 * v) + 140.0 - u + I, theano.config.floatX)
+        du = T.cast(a * ((b * v) - u), theano.config.floatX)
 
         now = T.iscalar("now")
         DC = T.vector("DC")
