@@ -10,43 +10,37 @@ def inspect_outputs(i, node, fn):
 
 class SynapseGroup:
     # scheduler should be receiving scheduler
-    def __init__(self, N1_size, N2_size, scheduler, max_delay):
+    def __init__(self, N1_size, N2_size, scheduler):
         self.scheduler = scheduler
-        self.max_delay = max_delay
         self.delay = 1
 
-        W_min = T.cast(-10.0, 'float32')
-        W_max = T.cast(10.0, 'float32')
-        a_sym = T.cast(0.05, 'float32')
-        tau_a = T.cast(10.0, 'float32')
-        tau_b = T.cast(10.0, 'float32')
+        W_min = -10.0
+        W_max = 10.0
+        a_sym = 0.05
+        tau_a = 10.0
+        tau_b = 10.0
 
         self.W = W = theano.shared(np.zeros((N1_size, N2_size)), name="W")
-        self.pre_t = pre_t = theano.shared(np.zeros((N1_size, N2_size)), name="pre_t")
-        self.post_t = post_t = theano.shared(np.zeros((N1_size, N2_size)), name="post_t")
+        pre_t = theano.shared(np.zeros((N1_size, N2_size)), name="pre_t")
+        post_t = theano.shared(np.zeros((N1_size, N2_size)), name="post_t")
 
         dt = post_t - pre_t
         dw = a_sym * (1.0 - (dt / tau_a)**2) * T.exp(-T.abs_(dt) / tau_b)
 
         now = T.iscalar("now")
-        spikes_1 = T.vector("spikes_1")
-        spikes_2 = T.vector("spikes_2")
+        spikes = T.vector("spikes")
 
-        self.pre_recv_now = theano.function([now, spikes_1], [pre_t],
-            updates=[(pre_t, T.switch(spikes_1, now, pre_t.T).T)], mode='FAST_RUN')
+        self.pre_recv_now = theano.function([now, spikes], [pre_t],
+            updates=[(pre_t, T.switch(spikes, now, pre_t.T).T)], name="pre_recv_now")
 
-        self.post_recv_now = theano.function([now, spikes_2], [post_t],
-            updates=[(post_t, T.switch(spikes_2, now, post_t))], mode='FAST_RUN')
+        self.post_recv_now = theano.function([now, spikes], [post_t],
+            updates=[(post_t, T.switch(spikes, now, post_t))], name="post_recv_now")
 
-        # NOTE: pre/post times should not overlap in a given tick from the same set of neurons
         self.integrate = theano.function([], W,
-            updates=[(W, T.clip(W + dw, W_min, W_max))], mode='FAST_RUN')
+            updates=[(W, T.clip(W + dw, W_min, W_max))], name="integrate")
 
-        self.apply_spikes = theano.function([spikes_1],
-            T.sum(W.T * spikes_1, axis=0, dtype=theano.config.floatX), mode='FAST_RUN')
-
-        self.apply_scheduler = theano.function([now, spikes_1], scheduler,
-            updates=[(scheduler, T.inc_subtensor(scheduler.T[now], spikes_1).T)], mode='FAST_RUN')
+        self.apply_spikes = theano.function([spikes],
+            T.sum(W * spikes, axis=1, dtype=theano.config.floatX), name="apply_spikes")
 
     def connect(self, W_connect):
         self.W.set_value(W_connect)
@@ -65,5 +59,5 @@ class SynapseGroup:
         spikes_out = self.apply_spikes(spikes_1)
 
         # schedule those spikes
-        t = (now + self.delay) % self.max_delay
-        self.apply_scheduler(t, spikes_out)
+        t = now + self.delay
+        self.scheduler.apply_schedule(t, spikes_out)

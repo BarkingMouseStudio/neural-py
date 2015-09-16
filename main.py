@@ -5,19 +5,16 @@ import theano.tensor as T
 
 from neuron_group import NeuronGroup
 from synapse_group import SynapseGroup
+from scheduler import Scheduler
 
-max_delay = 20
-N1_size = 1000
-N2_size = 1000
+N_size = 1000
 
-scheduler_1 = theano.shared(np.zeros((N1_size, max_delay)).astype(theano.config.floatX), name="scheduler_1")
-scheduler_2 = theano.shared(np.zeros((N2_size, max_delay)).astype(theano.config.floatX), name="scheduler_2")
+scheduler = Scheduler(N_size)
 
-N1 = NeuronGroup(N1_size, scheduler_1, max_delay)
-N2 = NeuronGroup(N2_size, scheduler_2, max_delay)
-S = SynapseGroup(N1_size, N2_size, scheduler_2, max_delay)
+N = NeuronGroup(N_size, scheduler)
+S = SynapseGroup(N_size, N_size, scheduler)
 
-weights = np.random.rand(N1_size, N2_size).astype(theano.config.floatX)
+weights = np.random.rand(N_size, N_size).astype(theano.config.floatX)
 np.fill_diagonal(weights, 0.0)
 S.connect(weights) # random connections
 
@@ -25,10 +22,10 @@ S.connect(weights) # random connections
 # http://www.deeplearning.net/tutorial/logreg.html#defining-a-loss-function
 start = time.clock()
 for now in range(0, 1000, 1):
-    spikes_1 = N1.tick(now, np.random.rand(N1_size).astype(theano.config.floatX) * 5.0) # random thalmic noise
-    spikes_2 = N2.tick(now, np.zeros(N2_size).astype(theano.config.floatX) * 120.0) # random thalmic noise
-    S.tick(now, spikes_1, spikes_2)
-    print("tick:", now)
+    noise = np.random.rand(N_size).astype(theano.config.floatX) * 5.0
+    spikes = N.tick(now, noise) # random thalmic noise
+    S.tick(now, spikes, spikes)
+    print("tick:", now, np.count_nonzero(spikes))
 
 end = time.clock()
 print("duration:", end - start)
