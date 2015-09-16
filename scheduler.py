@@ -14,9 +14,3 @@ class Scheduler:
             updates=[(schedule, T.inc_subtensor(schedule.T[t % max_delay], spikes).T)], name="apply_schedule")
 
         self.get_schedule = theano.function([t], schedule.T[t % max_delay], name="get_schedule")
-
-    def apply(self, t, spikes):
-        self.apply_schedule(t, spikes)
-
-    def get(self, t):
-        return self.get_schedule(t)

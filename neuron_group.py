@@ -2,9 +2,11 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+from scheduler import Scheduler
+
 class NeuronGroup:
-    def __init__(self, size, scheduler):
-        self.scheduler = scheduler
+    def __init__(self, size):
+        self.scheduler = Scheduler(size)
         self.size = size
 
         v_peak = 30.0
@@ -37,7 +39,7 @@ class NeuronGroup:
         ])
 
     def tick(self, now, DC):
-        schedule = self.scheduler.get(now)
+        schedule = self.scheduler.get_schedule(now)
         self.recv(DC, schedule)
 
         # tick once

@@ -10,8 +10,8 @@ def inspect_outputs(i, node, fn):
 
 class SynapseGroup:
     # scheduler should be receiving scheduler
-    def __init__(self, N1_size, N2_size, scheduler):
-        self.scheduler = scheduler
+    def __init__(self, N1, N2):
+        self.scheduler = N2.scheduler
         self.delay = 1
 
         W_min = -10.0
@@ -20,9 +20,9 @@ class SynapseGroup:
         tau_a = 10.0
         tau_b = 10.0
 
-        self.W = W = theano.shared(np.zeros((N1_size, N2_size)), name="W")
-        pre_t = theano.shared(np.zeros((N1_size, N2_size)), name="pre_t")
-        post_t = theano.shared(np.zeros((N1_size, N2_size)), name="post_t")
+        self.W = W = theano.shared(np.zeros((N1.size, N2.size)), name="W")
+        pre_t = theano.shared(np.zeros((N1.size, N2.size)), name="pre_t")
+        post_t = theano.shared(np.zeros((N1.size, N2.size)), name="post_t")
 
         dt = post_t - pre_t
         dw = a_sym * (1.0 - (dt / tau_a)**2) * T.exp(-T.abs_(dt) / tau_b)
