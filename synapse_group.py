@@ -21,18 +21,18 @@ class SynapseGroup:
         tau_b = 10.0
 
         self.W = W = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="W")
-        pre_t = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="pre_t")
+        pre_t = theano.shared(np.zeros((N2.size, N1.size)).astype(theano.config.floatX), name="pre_t")
         post_t = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="post_t")
 
-        dt = T.cast(post_t - pre_t, theano.config.floatX)
-        dw = T.cast(a_sym * (1.0 - (dt / tau_a)**2) * T.exp(-T.abs_(dt) / tau_b), theano.config.floatX)
+        dt = post_t - pre_t.T
+        dw = a_sym * (1.0 - (dt / tau_a)**2.0) * T.exp(-T.abs_(dt) / tau_b)
 
         now = T.scalar("now")
         spikes1 = T.vector("spikes", dtype=theano.config.floatX)
         spikes2 = T.vector("spikes", dtype=theano.config.floatX)
 
         self.pre_recv_now = theano.function([now, spikes1], [pre_t],
-            updates=[(pre_t, T.switch(spikes1, now, pre_t.T).T)], name="pre_recv_now")
+            updates=[(pre_t, T.switch(spikes1, now, pre_t))], name="pre_recv_now")
 
         self.post_recv_now = theano.function([now, spikes2], [post_t],
             updates=[(post_t, T.switch(spikes2, now, post_t))], name="post_recv_now")
@@ -59,5 +59,3 @@ class SynapseGroup:
         # schedule those spikes
         t = now + self.delay
         self.scheduler.apply_schedule(t, spikes_out)
-
-        return spikes_out
