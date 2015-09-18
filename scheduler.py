@@ -7,7 +7,7 @@ floatX = theano.config.floatX
 class Scheduler:
     def __init__(self, N_size, max_delay=20):
         self.max_delay = max_delay
-        self.schedule = schedule = theano.shared(np.zeros((max_delay, N_size), dtype=floatX), name="schedule")
+        self.schedule = schedule = theano.shared(np.zeros((max_delay, N_size), dtype=floatX), name="schedule", borrow=True)
 
         t = T.iscalar("t")
         spikes = T.vector("spikes")

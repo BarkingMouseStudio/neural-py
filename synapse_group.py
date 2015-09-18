@@ -4,12 +4,6 @@ import theano.tensor as T
 
 floatX = theano.config.floatX
 
-def inspect_inputs(i, node, fn):
-    print(i, node, "inputs:\n\t", [input[0] for input in fn.inputs])
-
-def inspect_outputs(i, node, fn):
-    print(i, node, "outputs:\n\t", [output[0] for output in fn.outputs])
-
 class SynapseGroup:
     # scheduler should be receiving scheduler
     def __init__(self, N1, N2):
@@ -22,9 +16,9 @@ class SynapseGroup:
         tau_a = 10.0
         tau_b = 10.0
 
-        self.W = W = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="W")
-        pre_t = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="pre_t")
-        post_t = theano.shared(np.zeros((N1.size, N2.size), dtype=floatX), name="post_t")
+        self.W = W = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="W", borrow=True)
+        pre_t = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="pre_t", borrow=True)
+        post_t = theano.shared(np.zeros((N1.size, N2.size), dtype=floatX), name="post_t", borrow=True)
 
         dt = post_t.T - pre_t
         dw = a_sym * (1.0 - (dt / tau_a)**2.0) * T.exp(-T.abs_(dt) / tau_b)
@@ -38,8 +32,10 @@ class SynapseGroup:
         self.post_recv = theano.function([now, spikes], [post_t],
             updates=[(post_t, T.switch(spikes, now, post_t))], name="post_recv")
 
+        # integrate dw for dt's within 50ms window, then clamp
+        # NOTE: even though both sides of the switch are calculated, this is still faster. cannot use ifelse because it is not element-wise.
         self.integrate = theano.function([], W,
-            updates=[(W, T.clip(W + dw, W_min, W_max))], name="integrate")
+            updates=[(W, T.clip(T.switch(T.lt(T.abs_(dt), 50.0), W + dw, W), W_min, W_max))], name="integrate")
 
         self.apply_spikes = theano.function([spikes],
             T.sum(W * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")

@@ -18,9 +18,9 @@ class NeuronGroup:
         d = 2.0
         tau = 0.5
 
-        self.v = v = theano.shared(np.full(size, c, dtype=floatX), name="v")
-        self.u = u = theano.shared(np.full(size, b * c, dtype=floatX), name="u")
-        self.I = I = theano.shared(np.zeros(size, dtype=floatX), name="I")
+        self.v = v = theano.shared(np.full(size, c, dtype=floatX), name="v", borrow=True)
+        self.u = u = theano.shared(np.full(size, b * c, dtype=floatX), name="u", borrow=True)
+        self.I = I = theano.shared(np.zeros(size, dtype=floatX), name="I", borrow=True)
 
         dv = tau * (0.04 * (v * v) + (v * 5.0) + 140.0 - u + I)
         du = tau * (a * ((b * v) - u))
