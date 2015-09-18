@@ -2,6 +2,8 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+floatX = theano.config.floatX
+
 def inspect_inputs(i, node, fn):
     print(i, node, "inputs:\n\t", [input[0] for input in fn.inputs])
 
@@ -20,35 +22,34 @@ class SynapseGroup:
         tau_a = 10.0
         tau_b = 10.0
 
-        self.W = W = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="W")
-        pre_t = theano.shared(np.zeros((N2.size, N1.size)).astype(theano.config.floatX), name="pre_t")
-        post_t = theano.shared(np.zeros((N1.size, N2.size)).astype(theano.config.floatX), name="post_t")
+        self.W = W = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="W")
+        pre_t = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="pre_t")
+        post_t = theano.shared(np.zeros((N1.size, N2.size), dtype=floatX), name="post_t")
 
-        dt = post_t - pre_t.T
+        dt = post_t.T - pre_t
         dw = a_sym * (1.0 - (dt / tau_a)**2.0) * T.exp(-T.abs_(dt) / tau_b)
 
         now = T.scalar("now")
-        spikes1 = T.vector("spikes", dtype=theano.config.floatX)
-        spikes2 = T.vector("spikes", dtype=theano.config.floatX)
+        spikes = T.vector("spikes")
 
-        self.pre_recv_now = theano.function([now, spikes1], [pre_t],
-            updates=[(pre_t, T.switch(spikes1, now, pre_t))], name="pre_recv_now")
+        self.pre_recv = theano.function([now, spikes], [pre_t],
+            updates=[(pre_t, T.switch(spikes, now, pre_t))], name="pre_recv")
 
-        self.post_recv_now = theano.function([now, spikes2], [post_t],
-            updates=[(post_t, T.switch(spikes2, now, post_t))], name="post_recv_now")
+        self.post_recv = theano.function([now, spikes], [post_t],
+            updates=[(post_t, T.switch(spikes, now, post_t))], name="post_recv")
 
         self.integrate = theano.function([], W,
             updates=[(W, T.clip(W + dw, W_min, W_max))], name="integrate")
 
-        self.apply_spikes = theano.function([spikes2],
-            T.sum(W.T * spikes2, axis=1, dtype=theano.config.floatX), name="apply_spikes")
+        self.apply_spikes = theano.function([spikes],
+            T.sum(W * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
 
     def tick(self, now, spikes_1, spikes_2):
         # for incoming neurons that spiked, update their synapses
-        self.pre_recv_now(now, spikes_1)
+        self.pre_recv(now, spikes_1)
 
         # for the receiving neurons that spiked, update their synapses
-        self.post_recv_now(now, spikes_2)
+        self.post_recv(now, spikes_2)
 
         # integrate with new pre/post times
         self.integrate()

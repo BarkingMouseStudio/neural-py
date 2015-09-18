@@ -4,6 +4,8 @@ import theano.tensor as T
 
 from scheduler import Scheduler
 
+floatX = theano.config.floatX
+
 class NeuronGroup:
     def __init__(self, size):
         self.scheduler = Scheduler(size)
@@ -16,9 +18,9 @@ class NeuronGroup:
         d = 2.0
         tau = 0.5
 
-        self.v = v = theano.shared(np.full(size, c).astype(theano.config.floatX), name="v")
-        self.u = u = theano.shared(np.full(size, b * c).astype(theano.config.floatX), name="u")
-        self.I = I = theano.shared(np.zeros(size).astype(theano.config.floatX), name="I")
+        self.v = v = theano.shared(np.full(size, c, dtype=floatX), name="v")
+        self.u = u = theano.shared(np.full(size, b * c, dtype=floatX), name="u")
+        self.I = I = theano.shared(np.zeros(size, dtype=floatX), name="I")
 
         dv = tau * (0.04 * (v * v) + (v * 5.0) + 140.0 - u + I)
         du = tau * (a * ((b * v) - u))
@@ -41,7 +43,6 @@ class NeuronGroup:
     def tick(self, now, DC):
         schedule = self.scheduler.get_schedule(now)
         self.scheduler.clear_schedule(now)
-
         self.recv(DC, schedule)
 
         self.tick_v()

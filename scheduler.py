@@ -2,10 +2,12 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+floatX = theano.config.floatX
+
 class Scheduler:
     def __init__(self, N_size, max_delay=20):
         self.max_delay = max_delay
-        self.schedule = schedule = theano.shared(np.zeros((max_delay, N_size)).astype(theano.config.floatX), name="schedule")
+        self.schedule = schedule = theano.shared(np.zeros((max_delay, N_size), dtype=floatX), name="schedule")
 
         t = T.iscalar("t")
         spikes = T.vector("spikes")
