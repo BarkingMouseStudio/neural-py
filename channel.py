@@ -1,0 +1,106 @@
+from __future__ import division
+
+import cProfile
+import time
+import math
+import numpy as np
+import theano
+import theano.tensor as T
+
+from neuron_group import NeuronGroup
+from synapse_group import SynapseGroup
+from com_estimator import COMEstimator
+
+floatX = theano.config.floatX
+
+def normalize(x, mn, mx):
+    return (x - mn) / (mx - mn)
+
+def denormalize(x, mn, mx):
+    return (x * (mx - mn)) + mn
+
+def train():
+    duration = 3.14 * 1000.0
+
+    N1 = NeuronGroup(100)
+    N2 = NeuronGroup(100)
+
+    S1 = SynapseGroup(N1, N2)
+    S2 = SynapseGroup(N1, N2)
+
+    weights = np.random.rand(N1.size, N2.size).astype(floatX)
+    weights = denormalize(weights, -4.0, 0.0)
+    S1.W.set_value(weights)
+
+    weights = np.random.rand(N1.size, N2.size).astype(floatX)
+    weights = denormalize(weights, 0.0, 4.0)
+    S2.W.set_value(weights)
+
+    dt = 1.0 / 1000.0 # 1 ms
+    noise_rate_ms = 5.0 * dt
+
+    encoding = COMEstimator(N1.size, 3.0, 1.0)
+
+    S1.set_training(True)
+    S2.set_training(True)
+
+    # training
+    for now in np.arange(0.0, duration * 10, 1.0):
+        input_value = math.sin(now / 1000.0)
+        input_norm = normalize(input_value, -1.0, 1.0)
+
+        output_value = input_value
+        output_norm = input_norm
+
+        input_rate = (np.random.rand(N1.size) < noise_rate_ms).astype(floatX) * 125.0
+        output_rate = (np.random.rand(N2.size) < noise_rate_ms).astype(floatX) * 125.0
+
+        encoding.encode(input_rate, input_norm)
+        encoding.encode(output_rate, output_norm)
+
+        spikes1 = N1.tick(now, input_rate)
+        spikes2 = N2.tick(now, output_rate)
+
+        S1.tick(now, spikes1, spikes2)
+        S2.tick(now, spikes1, spikes2)
+
+        output_norm = encoding.decode(N2.rate.get_value())
+
+        err = abs(input_norm - output_norm)
+        print ("training", now / duration, err)
+
+    # testing
+    S1.set_training(False)
+    S2.set_training(False)
+    mse = 0.0
+
+    for now in np.arange(0.0, duration, 1.0):
+        input_value = math.sin(now / 1000.0)
+        input_norm = normalize(input_value, -1.0, 1.0)
+
+        input_rate = np.zeros(N1.size).astype(floatX)
+        output_rate = np.zeros(N2.size).astype(floatX)
+
+        encoding.encode(input_rate, input_norm)
+
+        spikes1 = N1.tick(now, input_rate)
+        spikes2 = N2.tick(now, output_rate)
+
+        S1.tick(now, spikes1, spikes2)
+        S2.tick(now, spikes1, spikes2)
+
+        output_norm = encoding.decode(N2.rate.get_value())
+        output_value = denormalize(output_norm, -1.0, 1.0)
+
+        err = abs(input_norm - output_norm)
+        mse += math.pow(err, 2.0)
+        print ("testing", now / duration, err)
+
+    mse /= duration
+    print ("mse", mse)
+
+def main():
+    cProfile.run('train()')
+
+if __name__ == "__main__":
+    main()

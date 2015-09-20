@@ -10,6 +10,9 @@ class SynapseGroup:
         self.scheduler = N2.scheduler
         self.delay = 1
 
+        self.transmission_enabled = True
+        self.learning_enabled = True
+
         W_min = -10.0
         W_max = 10.0
         a_sym = 0.05
@@ -40,19 +43,30 @@ class SynapseGroup:
         self.apply_spikes = theano.function([spikes],
             T.sum(W * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
 
+    def set_training(self, is_training):
+        if is_training:
+            self.learning_enabled = True
+            self.transmission_enabled = False
+        else:
+            self.learning_enabled = False
+            self.transmission_enabled = True
+
     def tick(self, now, spikes_1, spikes_2):
-        # for incoming neurons that spiked, update their synapses
-        self.pre_recv(now, spikes_1)
+        if self.learning_enabled:
+            # for incoming neurons that spiked, update their synapses
+            self.pre_recv(now, spikes_1)
 
-        # for the receiving neurons that spiked, update their synapses
-        self.post_recv(now, spikes_2)
+            # for the receiving neurons that spiked, update their synapses
+            self.post_recv(now, spikes_2)
 
-        # integrate with new pre/post times
-        self.integrate()
+            # integrate with new pre/post times
+            self.integrate()
 
-        # convert neuron spikes into their respective outgoing synaptic weights and delays
-        spikes_out = self.apply_spikes(spikes_1)
+        # TODO: transmit spikes but do not override training inputs (so we can train hidden layers)
+        if self.transmission_enabled:
+            # convert neuron spikes into their respective outgoing synaptic weights and delays
+            spikes_out = self.apply_spikes(spikes_1)
 
-        # schedule those spikes
-        t = now + self.delay
-        self.scheduler.apply_schedule(t, spikes_out)
+            # schedule those spikes
+            t = now + self.delay
+            self.scheduler.apply_schedule(t, spikes_out)
