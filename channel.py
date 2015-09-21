@@ -1,7 +1,6 @@
 from __future__ import division
 
 import cProfile
-import time
 import math
 import numpy as np
 import theano
@@ -19,7 +18,7 @@ def normalize(x, mn, mx):
 def denormalize(x, mn, mx):
     return (x * (mx - mn)) + mn
 
-def train():
+def main():
     duration = 3.14 * 1000.0
 
     N1 = NeuronGroup(100)
@@ -45,12 +44,12 @@ def train():
     S2.set_training(True)
 
     # training
-    for now in np.arange(0.0, duration * 10, 1.0):
+    for now in np.arange(0.0, duration * 3, 1.0):
         input_value = math.sin(now / 1000.0)
         input_norm = normalize(input_value, -1.0, 1.0)
 
-        output_value = input_value
-        output_norm = input_norm
+        output_value = -input_value
+        output_norm = normalize(output_value, -1.0, 1.0)
 
         input_rate = (np.random.rand(N1.size) < noise_rate_ms).astype(floatX) * 125.0
         output_rate = (np.random.rand(N2.size) < noise_rate_ms).astype(floatX) * 125.0
@@ -67,7 +66,7 @@ def train():
         output_norm = encoding.decode(N2.rate.get_value())
 
         err = abs(input_norm - output_norm)
-        print ("training", now / duration, err)
+        # print ("training", now / duration, err)
 
     # testing
     S1.set_training(False)
@@ -94,13 +93,10 @@ def train():
 
         err = abs(input_norm - output_norm)
         mse += math.pow(err, 2.0)
-        print ("testing", now / duration, err)
+        # print ("testing", now / duration, err)
 
     mse /= duration
     print ("mse", mse)
-
-def main():
-    cProfile.run('train()')
 
 if __name__ == "__main__":
     main()

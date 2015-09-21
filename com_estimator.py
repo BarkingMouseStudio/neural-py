@@ -17,14 +17,14 @@ class COMEstimator:
         self.scale = 1.0 - (self.width * 2.0)
 
     # f : [0, 1] -> [1, N]
-    def f(self, v):
-        v *= self.scale
-        v += self.width
-        return round(v * self.size)
+    def f(self, x):
+        x *= self.scale
+        x += self.width
+        return round(x * self.size)
 
     # f_inv : [1, N] -> [0, 1]
-    def f_inv(self, x):
-        v = x / self.size
+    def f_inv(self, i):
+        v = i / self.size
         v -= self.width
         v /= self.scale
         return v
@@ -33,10 +33,10 @@ class COMEstimator:
         return round(x / self.bin_size)
 
     # express firing rate of neuron x when the normalized value v_0 is encoded
-    def encode(self, inp, theta):
+    def encode(self, inp, x):
         dt = 1.0 / 1000.0 # 1 ms
         for i in range(self.size):
-            rate = self.rate_max * math.exp(-1.0 * (math.pow(self.bin(i - self.f(theta)), 2.0) / self.sigma2_2))
+            rate = self.rate_max * math.exp(-1.0 * (math.pow(self.bin(i - self.f(x)), 2.0) / self.sigma2_2))
 
             # add to input so we maintain noise levels
             inp[i] += self.v if random.random() < rate * dt else 0.0
