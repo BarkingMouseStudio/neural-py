@@ -49,7 +49,7 @@ def main():
         input_value = math.sin(now / 1000.0)
         input_norm = normalize(input_value, -1.0, 1.0)
 
-        output_value = input_value
+        output_value = -input_value
         output_norm = normalize(output_value, -1.0, 1.0)
 
         input_rate = (np.random.rand(N1.size) < noise_rate_ms).astype(floatX) * 125.0
@@ -64,9 +64,9 @@ def main():
         S1.tick(now, spikes1, spikes2)
         S2.tick(now, spikes1, spikes2)
 
-        output_norm = encoding.decode(N2.rate.get_value())
+        output_norm_actual = encoding.decode(N2.rate.get_value())
 
-        err = abs(input_norm - output_norm)
+        err = abs(output_norm - output_norm_actual)
         print ("training", now / training_duration, err)
 
     # testing
@@ -89,10 +89,13 @@ def main():
         S1.tick(now, spikes1, spikes2)
         S2.tick(now, spikes1, spikes2)
 
-        output_norm = encoding.decode(N2.rate.get_value())
-        output_value = denormalize(output_norm, -1.0, 1.0)
+	output_value = -input_value
+	output_norm = normalize(output_value, -1.0, 1.0)
 
-        err = abs(input_norm - output_norm)
+        output_norm_actual = encoding.decode(N2.rate.get_value())
+        output_value_actual = denormalize(output_norm_actual, -1.0, 1.0)
+
+        err = abs(output_norm - output_norm_actual)
         mse += math.pow(err, 2.0)
         print ("testing", now / testing_duration, err)
 
