@@ -7,4 +7,5 @@ setup(
   author='Jim Fleming',
   author_email='jim@fomoro.com',
   install_requires=['theano'],
+  packages = ["neural"],
 )
