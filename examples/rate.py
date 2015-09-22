@@ -1,10 +1,12 @@
-import time
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
 import theano
 import theano.tensor as T
 
-from neuron_group import NeuronGroup
-from synapse_group import SynapseGroup
+from neural.neuron_group import NeuronGroup
 
 floatX = theano.config.floatX
 
@@ -19,7 +21,7 @@ def main():
 
     for now in np.arange(0.0, duration, 1.0):
         input_rate = (np.random.rand(N.size) < rate_ms).astype(floatX) * 125.0
-        spikes = N.tick(now, input_rate)
+        N.tick(now, input_rate)
         print (now, N.rate.get_value().mean())
 
 if __name__ == "__main__":

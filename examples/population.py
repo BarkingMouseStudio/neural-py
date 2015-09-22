@@ -1,14 +1,17 @@
 from __future__ import division
 
-import time
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import math
 import numpy as np
 import theano
 import theano.tensor as T
 
-from neuron_group import NeuronGroup
-from synapse_group import SynapseGroup
-from com_estimator import COMEstimator
+from neural.neuron_group import NeuronGroup
+from neural.synapse_group import SynapseGroup
+from neural.com_estimator import COMEstimator
 
 floatX = theano.config.floatX
 

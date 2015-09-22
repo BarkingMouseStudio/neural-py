@@ -1,10 +1,14 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 import numpy as np
 import theano
 import theano.tensor as T
 
-from neuron_group import NeuronGroup
-from synapse_group import SynapseGroup
+from neural.neuron_group import NeuronGroup
+from neural.synapse_group import SynapseGroup
 
 floatX = theano.config.floatX
 
@@ -20,13 +24,13 @@ def main():
     # http://www.deeplearning.net/tutorial/logreg.html#defining-a-loss-function
     start = time.clock()
     for now in np.arange(0.0, duration, 1.0):
-        spikes = N.tick(now, np.random.rand(N.size).astype(floatX) * 5.0)
-        S.tick(now, spikes, spikes)
+        N.tick(now, np.random.rand(N.size).astype(floatX) * 5.0)
+        S.tick(now)
 
         weights = S.W.get_value()
 
         end = time.clock()
-        print ("t", now, "real", end - start, "rate", np.count_nonzero(spikes), "min", weights.min(), "max",  weights.max(), "std", weights.std())
+        print ("t", now, "real", end - start, "rate", np.count_nonzero(N.spikes))
 
 if __name__ == "__main__":
     main()

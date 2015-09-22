@@ -1,14 +1,17 @@
 from __future__ import division
 
-import cProfile
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import math
 import numpy as np
 import theano
 import theano.tensor as T
 
-from neuron_group import NeuronGroup
-from synapse_group import SynapseGroup
-from com_estimator import COMEstimator
+from neural.neuron_group import NeuronGroup
+from neural.synapse_group import SynapseGroup
+from neural.com_estimator import COMEstimator
 
 floatX = theano.config.floatX
 
@@ -58,11 +61,11 @@ def main():
         encoding.encode(input_rate, input_norm)
         encoding.encode(output_rate, output_norm)
 
-        spikes1 = N1.tick(now, input_rate)
-        spikes2 = N2.tick(now, output_rate)
+        N1.tick(now, input_rate)
+        N2.tick(now, output_rate)
 
-        S1.tick(now, spikes1, spikes2)
-        S2.tick(now, spikes1, spikes2)
+        S1.tick(now)
+        S2.tick(now)
 
         output_norm_actual = encoding.decode(N2.rate.get_value())
 
@@ -83,11 +86,11 @@ def main():
 
         encoding.encode(input_rate, input_norm)
 
-        spikes1 = N1.tick(now, input_rate)
-        spikes2 = N2.tick(now, output_rate)
+        N1.tick(now, input_rate)
+        N2.tick(now, output_rate)
 
-        S1.tick(now, spikes1, spikes2)
-        S2.tick(now, spikes1, spikes2)
+        S1.tick(now)
+        S2.tick(now)
 
 	output_value = -input_value
 	output_norm = normalize(output_value, -1.0, 1.0)

@@ -67,10 +67,10 @@ class NeuronGroup:
         self.tick_v()
         self.tick_u()
 
-        spikes = self.threshold()
+        self.spikes = self.threshold()
 
-        self.count_spikes(now, spikes)
+        self.count_spikes(now, self.spikes)
         self.sum_rate()
 
-        self.reset(spikes)
-        return spikes
+        self.reset(self.spikes)
+        return self.spikes

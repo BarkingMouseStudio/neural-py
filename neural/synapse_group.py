@@ -7,6 +7,8 @@ floatX = theano.config.floatX
 class SynapseGroup:
     # scheduler should be receiving scheduler
     def __init__(self, N1, N2):
+        self.N1 = N1
+        self.N2 = N2
         self.scheduler = N2.scheduler
         self.delay = 1
 
@@ -51,13 +53,13 @@ class SynapseGroup:
             self.learning_enabled = False
             self.transmission_enabled = True
 
-    def tick(self, now, spikes_1, spikes_2):
+    def tick(self, now):
         if self.learning_enabled:
             # for incoming neurons that spiked, update their synapses
-            self.pre_recv(now, spikes_1)
+            self.pre_recv(now, self.N1.spikes)
 
             # for the receiving neurons that spiked, update their synapses
-            self.post_recv(now, spikes_2)
+            self.post_recv(now, self.N2.spikes)
 
             # integrate with new pre/post times
             self.integrate()
@@ -65,7 +67,7 @@ class SynapseGroup:
         # TODO: transmit spikes but do not override training inputs (so we can train hidden layers)
         if self.transmission_enabled:
             # convert neuron spikes into their respective outgoing synaptic weights and delays
-            spikes_out = self.apply_spikes(spikes_1)
+            spikes_out = self.apply_spikes(self.N1.spikes)
 
             # schedule those spikes
             t = now + self.delay
