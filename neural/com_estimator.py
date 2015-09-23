@@ -51,4 +51,4 @@ class COMEstimator:
             den += rate[i]
 
         # if we cannot divide by zero, go to middle of range (0.5)
-        return (num / den) if den != 0.0 else 0.5
+        return (num / den) if den != 0.0 else None
