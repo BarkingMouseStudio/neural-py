@@ -6,22 +6,17 @@ floatX = theano.config.floatX
 
 class SynapseGroup:
     # scheduler should be receiving scheduler
-    def __init__(self, N1, N2):
+    def __init__(self, N1, N2, weight_min=-10.0, weight_max=10.0):
         self.N1 = N1
         self.N2 = N2
         self.scheduler = N2.scheduler
         self.delay = 1
 
-        self.transmission_enabled = True
-        self.learning_enabled = True
-
-        W_min = -10.0
-        W_max = 10.0
         a_sym = 0.05
         tau_a = 10.0
         tau_b = 10.0
 
-        self.W = W = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="W", borrow=True)
+        self.weight = weight = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="weight", borrow=True)
         pre_t = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="pre_t", borrow=True)
         post_t = theano.shared(np.zeros((N1.size, N2.size), dtype=floatX), name="post_t", borrow=True)
 
@@ -39,22 +34,14 @@ class SynapseGroup:
 
         # integrate dw for dt's within 50ms window, then clamp
         # NOTE: even though both sides of the switch are calculated, this is still faster. cannot use ifelse because it is not element-wise.
-        self.integrate = theano.function([], W,
-            updates=[(W, T.clip(T.switch(T.lt(T.abs_(dt), 50.0), W + dw, W), W_min, W_max))], name="integrate")
+        self.integrate = theano.function([], weight,
+            updates=[(weight, T.clip(T.switch(T.lt(T.abs_(dt), 50.0), weight + dw, weight), weight_min, weight_max))], name="integrate")
 
         self.apply_spikes = theano.function([spikes],
-            T.sum(W * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
+            T.sum(weight * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
 
-    def set_training(self, is_training):
-        if is_training:
-            self.learning_enabled = True
-            self.transmission_enabled = False
-        else:
-            self.learning_enabled = False
-            self.transmission_enabled = True
-
-    def tick(self, now):
-        if self.learning_enabled:
+    def tick(self, now, learning_enabled=True, transmission_enabled=True):
+        if learning_enabled:
             # for incoming neurons that spiked, update their synapses
             self.pre_recv(now, self.N1.spikes)
 
@@ -65,7 +52,7 @@ class SynapseGroup:
             self.integrate()
 
         # TODO: transmit spikes but do not override training inputs (so we can train hidden layers)
-        if self.transmission_enabled:
+        if transmission_enabled:
             # convert neuron spikes into their respective outgoing synaptic weights and delays
             spikes_out = self.apply_spikes(self.N1.spikes)
 
