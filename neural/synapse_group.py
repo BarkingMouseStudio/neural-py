@@ -20,7 +20,7 @@ class SynapseGroup:
         pre_t = theano.shared(np.zeros((N2.size, N1.size), dtype=floatX), name="pre_t", borrow=True)
         post_t = theano.shared(np.zeros((N1.size, N2.size), dtype=floatX), name="post_t", borrow=True)
 
-        dt = post_t.T - pre_t
+        dt = post_t - pre_t.T
         dw = a_sym * (1.0 - (dt / tau_a)**2.0) * T.exp(-T.abs_(dt) / tau_b)
 
         now = T.scalar("now")
@@ -35,10 +35,10 @@ class SynapseGroup:
         # integrate dw for dt's within 50ms window, then clamp
         # NOTE: even though both sides of the switch are calculated, this is still faster. cannot use ifelse because it is not element-wise.
         self.integrate = theano.function([], weight,
-            updates=[(weight, T.clip(T.switch(T.lt(T.abs_(dt), 50.0), weight + dw, weight), weight_min, weight_max))], name="integrate")
+            updates=[(weight, T.clip(weight + dw, weight_min, weight_max))], name="integrate")
 
         self.apply_spikes = theano.function([spikes],
-            T.sum(weight * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
+            T.sum(weight.T * spikes, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
 
     def tick(self, now, learning_enabled=True, transmission_enabled=True):
         if learning_enabled:
