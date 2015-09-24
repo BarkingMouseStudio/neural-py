@@ -18,7 +18,7 @@ def main():
     N = NeuronGroup(1000)
 
     S = SynapseGroup(N, N)
-    S.W.set_value(np.random.rand(N.size, N.size).astype(floatX) * 20.0 - 10.0)
+    S.weight.set_value(np.random.rand(N.size, N.size).astype(floatX) * 20.0 - 10.0)
 
     # TODO: scan + batch 20ms intervals onto the GPU
     # http://www.deeplearning.net/tutorial/logreg.html#defining-a-loss-function
@@ -27,7 +27,7 @@ def main():
         N.tick(now, np.random.rand(N.size).astype(floatX) * 5.0)
         S.tick(now)
 
-        weights = S.W.get_value()
+        weights = S.weight.get_value()
 
         end = time.clock()
         print ("t", now, "real", end - start, "rate", np.count_nonzero(N.spikes))
