@@ -42,7 +42,7 @@ class SynapseGroup:
         # integrate dw for dt's within 50ms window, then clamp
         # NOTE: even though both sides of the switch are calculated, this is still faster. cannot use ifelse because it is not element-wise.
         self.integrate = theano.function([spikes_pre, spikes_post], weight,
-            updates=[(weight, weight_update)], name="integrate")
+            updates=[(weight, weight_clamp)], name="integrate")
 
         self.apply_spikes = theano.function([spikes_pre],
             T.sum(weight.T * spikes_pre, axis=1, dtype=floatX, acc_dtype=floatX), name="apply_spikes")
