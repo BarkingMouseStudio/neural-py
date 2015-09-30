@@ -7,15 +7,11 @@ from scheduler import Scheduler
 floatX = theano.config.floatX
 
 class NeuronGroup:
-    def __init__(self, size):
+    def __init__(self, size, a=0.1, b=0.2, c=-65.0, d=2.0):
         self.scheduler = Scheduler(size)
         self.size = size
 
         v_peak = 30.0
-        a = 0.1
-        b = 0.2
-        c = -65.0
-        d = 2.0
         tau = 0.5
 
         self.v = v = theano.shared(np.full(size, c, dtype=floatX), name="v", borrow=True)
@@ -40,7 +36,7 @@ class NeuronGroup:
             (I, T.zeros_like(I)),
         ])
 
-        window_size = 50
+        window_size = 40
         rate_mul = 1000.0 / window_size
 
         self.spike_counter = spike_counter = theano.shared(np.zeros((window_size, size), dtype=floatX), name="spike_counter", borrow=True)
